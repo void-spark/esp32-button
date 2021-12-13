@@ -14,7 +14,7 @@ Only the following pins can be used as inputs on the ESP32:
 
 ## Example Usage
 
-```
+```c
 button_event_t ev;
 QueueHandle_t button_events = button_init(PIN_BIT(BUTTON_1) | PIN_BIT(BUTTON_2));
 while (true) {

@@ -21,9 +21,9 @@ typedef struct {
   uint32_t next_long_time;
 } debounce_t;
 
-int pin_count = -1;
-debounce_t * debounce;
-QueueHandle_t queue;
+static int pin_count = -1;
+static debounce_t * debounce;
+static QueueHandle_t queue;
 
 static void update_button(debounce_t *d) {
     d->history = (d->history << 1) | gpio_get_level(d->pin);
@@ -74,17 +74,17 @@ static void button_task(void *pvParameter)
         for (int idx=0; idx<pin_count; idx++) {
             update_button(&debounce[idx]);
             if (debounce[idx].down_time && millis() >= debounce[idx].next_long_time) {
-                ESP_LOGI(TAG, "%d LONG", debounce[idx].pin);
+                ESP_LOGD(TAG, "%d LONG", debounce[idx].pin);
                 debounce[idx].next_long_time = debounce[idx].next_long_time + LONG_PRESS_REPEAT;
                 send_event(debounce[idx], BUTTON_HELD);
             } else if (button_down(&debounce[idx]) && debounce[idx].down_time == 0) {
                 debounce[idx].down_time = millis();
-                ESP_LOGI(TAG, "%d DOWN", debounce[idx].pin);
+                ESP_LOGD(TAG, "%d DOWN", debounce[idx].pin);
                 debounce[idx].next_long_time = debounce[idx].down_time + LONG_PRESS_DURATION;
                 send_event(debounce[idx], BUTTON_DOWN);
             } else if (button_up(&debounce[idx])) {
                 debounce[idx].down_time = 0;
-                ESP_LOGI(TAG, "%d UP", debounce[idx].pin);
+                ESP_LOGD(TAG, "%d UP", debounce[idx].pin);
                 send_event(debounce[idx], BUTTON_UP);
             }
         }
@@ -108,8 +108,9 @@ QueueHandle_t pulled_button_init(unsigned long long pin_select, gpio_pull_mode_t
     gpio_config_t io_conf;
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = (pull_mode == GPIO_PULLUP_ONLY || pull_mode == GPIO_PULLUP_PULLDOWN);
-    io_conf.pull_down_en = (pull_mode == GPIO_PULLDOWN_ONLY || pull_mode == GPIO_PULLUP_PULLDOWN);;
+    io_conf.pull_down_en = (pull_mode == GPIO_PULLDOWN_ONLY || pull_mode == GPIO_PULLUP_PULLDOWN);
     io_conf.pin_bit_mask = pin_select;
+    io_conf.intr_type = GPIO_INTR_DISABLE;
     gpio_config(&io_conf);
 
     // Scan the pin map to determine number of pins
@@ -138,7 +139,7 @@ QueueHandle_t pulled_button_init(unsigned long long pin_select, gpio_pull_mode_t
     }
 
     // Spawn a task to monitor the pins
-    xTaskCreate(&button_task, "button_task", 4096, NULL, 10, NULL);
+    xTaskCreate(&button_task, "button_task", 1024, NULL, 10, NULL);
 
     return queue;
 }
