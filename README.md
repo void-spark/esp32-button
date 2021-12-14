@@ -16,7 +16,7 @@ Only the following pins can be used as inputs on the ESP32:
 
 ```c
 button_event_t ev;
-QueueHandle_t button_events = button_init(PIN_BIT(BUTTON_1) | PIN_BIT(BUTTON_2));
+QueueHandle_t button_events = button_init(BIT64(BUTTON_1) | BIT64(BUTTON_2));
 while (true) {
     if (xQueueReceive(button_events, &ev, 1000/portTICK_PERIOD_MS)) {
         if ((ev.pin == BUTTON_1) && (ev.event == BUTTON_DOWN)) {
